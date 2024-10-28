@@ -1,0 +1,361 @@
+.include models.cir
+.include benchequipment.cir
+
+**********************************************Stereo to mono converter
+*			       		Left input
+* 	               		| Right input
+*  	                    | |   Output
+*  	                	| |   |   POSTIVE POWER SUPPLY
+*  	                	| |   |   |     NEGATIVE POWER SUPPLY
+*                   	| |   |   |     |
+.SUBCKT stereo_mono	    L R out vcc15 vee15
+	Xunity_buf1			    L  		Lbuf 	vcc15 vee15 	buffer
+	Xunity_buf2			    R  		Rbuf  	vcc15 vee15 	buffer
+	XRbalance				Lbuf 	sumbuf 	Rbuf 			RPOTBAL
+	Xunity_buf3			    sumbuf  out  	vcc15 vee15 	buffer
+	R1 L 0 1000k
+	R2 R 0 1000k
+.ENDS
+
+********************************************** Volume Control
+*						Pitch
+*			       		| Mids
+* 	               		| |  Bass
+*  	                    | |  |   out
+*  	                	| |  |   |	 POSTIVE POWER SUPPLY
+*  	                	| |  |   |   |  	NEGATIVE POWER SUPPLY
+*                   	| |  |   |   |      |
+.SUBCKT vol_contr	    P M  B  out vcc15 vee15
+	XRpitch 				P 			P_bias 		P_bias 		RPOTTONEH
+	XRmid 					M 			M_bias 		M_bias 		RPOTTONEM
+	XRbass  				B 			B_bias 		B_bias 		RPOTTONEL
+	XRvol					vg_sum 		out 		float 		RPOTVOL
+	Ri_pitch 				P_bias		vg_pitch	82K
+	Ri_mid					M_bias		vg_mid		82K
+	Ri_bass					B_bias		vg_bass		82K	
+	Rf_pitch 				vg_pitch	pitch_out	82K
+	Rf_mid					vg_mid		mid_out		82K
+	Rf_bass					vg_bass		bass_out	82K	
+	Xinv_amp1				0 			vg_pitch 	vcc15 		vee15 	pitch_out 	TL081
+	Xinv_amp2				0 			vg_mid 		vcc15 		vee15 	mid_out 	TL081
+	Xinv_amp3				0 			vg_bass 	vcc15 		vee15 	bass_out 	TL081
+	R1 						pitch_out 	vg_sum 		220k
+	R2 						mid_out 	vg_sum 		220k
+	R3 						bass_out 	vg_sum 		220k
+	Xinv_amp4				0 			vg_sum		vcc15 		vee15 	out 		TL081
+	Rground1				vg_pitch 	0 			1000k
+	Rground2				vg_mid 		0 			1000k
+	Rground3				vg_bass 	0 			1000k
+	Rground4				vg_sum	 	0 			1000k
+.ENDS
+
+**********************************************Inverting amplifier (Unity)
+*					  Input
+* 	        		  |   output
+*  	        		  |   |    POSITIVE POWER SUPPLY
+*  	       		 	  |   |    |     NEGATIVE POWER SUPPLY
+*  	        		  |   |    |     |
+*           	      |   |    |     |
+.SUBCKT inv_amp_unity in out vcc15 vee15
+	r1 			in 			vg_inv 		100k
+	r2 			vg_inv 		out 		100k
+	Rground 	vg_inv 		0 			1000k
+	Xopamp 		0 			vg_inv 		vcc15 vee15 out TL081
+.ENDS
+
+**********************************************Unity Gain Buffer
+*			   Input
+* 	           |   output
+*  	           |   |    POSITIVE POWER SUPPLY
+*  	       	   |   |    |     NEGATIVE POWER SUPPLY
+*  	           |   |    |     |
+*              |   |    |     |
+.SUBCKT buffer in out vcc15 vee15
+	Xopamp in out vcc15 vee15 out TL081
+.ENDS
+
+**********************************************4th order low pass filter (unity)
+*			   Input
+* 	           | output
+*  	           | | POSITIVE POWER SUPPLY
+*  	           | | | NEGATIVE POWER SUPPLY
+*  	           | | | |
+*              | | | |
+.SUBCKT LPF_4n 1 2 3 4
+
+	*Low pass filter stage 1
+	*			 Input
+	* 	         | output
+	*  	         | | POSITIVE POWER SUPPLY
+	*  	         | | | NEGATIVE POWER SUPPLY
+	*  	         | | | |
+	*            | | | |
+	.SUBCKT LPF1 1 2 3 4
+		r1 1 5 8200
+		r2 5 2 8200
+		r3 5 6 390
+		c1 6 2 0.1u
+		c2 5 0 0.68u
+		Xopamp 0 6 3 4 2 TL081
+	.ENDS
+
+	*Low pass filter stage 2
+	*			 Input
+	* 	         | output
+	*  	         | | POSITIVE POWER SUPPLY
+	*  	         | | | NEGATIVE POWER SUPPLY
+	*  	         | | | |
+	*            | | | |
+	.SUBCKT LPF2 1 2 3 4
+		r1 1 5 3900
+		r2 5 2 3900
+		r3 5 6 680
+		c1 6 2 0.1u
+		c2 5 0 0.68u
+		Xopamp 0 6 3 4 2 TL081
+	.ENDS
+
+	* Cascade the 2 filters
+	Xfilter_stage_1 1 5 3 4 LPF1
+	Xfilter_stage_2 5 2 3 4 LPF2
+
+.ENDS
+
+**********************************************4th order high pass filter (unity)
+*			   Input
+* 	           | output
+*  	           | | POSITIVE POWER SUPPLY
+*  	           | | | NEGATIVE POWER SUPPLY
+*  	           | | | |
+*              | | | |
+.SUBCKT HPF_4n 1 2 3 4
+
+	*High pass filter stage 1
+	*			 Input
+	* 	         | output
+	*  	         | | POSITIVE POWER SUPPLY
+	*  	         | | | NEGATIVE POWER SUPPLY
+	*  	         | | | |
+	*            | | | |
+	.SUBCKT HPF1 1 2 3 4
+		c1 1 5 0.01u
+		c2 5 2 0.01u
+		c3 5 6 0.01u
+		r1 6 2 10000
+		r2 5 0 3300
+		Xopamp 0 6 3 4 2 TL081
+	.ENDS
+
+	*High pass filter stage 2
+	*			 Input
+	* 	         | output
+	*  	         | | POSITIVE POWER SUPPLY
+	*  	         | | | NEGATIVE POWER SUPPLY
+	*  	         | | | |
+	*            | | | |
+	.SUBCKT HPF2 1 2 3 4
+		c1 1 5 0.01u
+		c2 5 2 0.01u
+		c3 5 6 0.01u
+		r1 6 2 15000
+		r2 5 0 2200
+		Xopamp 0 6 3 4 2 TL081
+	.ENDS
+
+	* Cascade the 2 filters
+	Xfilter_stage_1 1 5 3 4 HPF1
+	Xfilter_stage_2 5 2 3 4 HPF2
+
+.ENDS
+
+**********************************************4th order band pass filter (Unity)
+*			   Input
+* 	           | output
+*  	           | | POSITIVE POWER SUPPLY
+*  	           | | | NEGATIVE POWER SUPPLY
+*  	           | | | |
+*              | | | |
+.SUBCKT BPF_4n 1 2 3 4
+
+	***************4th order low pass filter for the bandpass (Custom)(unity)
+	*			      Input
+	* 	              | output
+	*  	              | | POSITIVE POWER SUPPLY
+	*  	              | | | NEGATIVE POWER SUPPLY
+	*  	              | | | |
+	*                 | | | |
+	.SUBCKT LPF_4n_BP 1 2 3 4
+
+		*Low pass filter stage 1
+		*			 Input
+		* 	         | output
+		*  	         | | POSITIVE POWER SUPPLY
+		*  	         | | | NEGATIVE POWER SUPPLY
+		*  	         | | | |
+		*            | | | |
+		.SUBCKT LPF1 1 2 3 4
+			r1 		1 	5 	8200
+			r2 		5 	2 	8200
+			r3 		5 	6 	390
+			c1 		6 	2 	0.01u
+			c2 		5 	0 	0.068u
+			Xopamp 	0 	6 	3 		4 	2 TL081
+		.ENDS
+
+		*Low pass filter stage 2
+		*			 Input
+		* 	         | output
+		*  	         | | POSITIVE POWER SUPPLY
+		*  	         | | | NEGATIVE POWER SUPPLY
+		*  	         | | | |
+		*            | | | |
+		.SUBCKT LPF2 1 2 3 4
+			r1 		1 	5 	3900
+			r2 		5 	2 	3900
+			r3 		5 	6 	680
+			c1 		6 	2 	0.01u
+			c2 		5 	0 	0.068u
+			Xopamp 	0 	6 	3 		4 2 TL081
+		.ENDS
+
+		* Cascade the 2 filters
+		Xfilter_stage_1 1 5 3 4 LPF1
+		Xfilter_stage_2 5 2 3 4 LPF2
+	.ENDS
+
+	***************4th order High pass filter for the bandpass (Custom)(unity)
+	*			      Input
+	* 	              | output
+	*  	              | | POSITIVE POWER SUPPLY
+	*  	              | | | NEGATIVE POWER SUPPLY
+	*  	              | | | |
+	*                 | | | |
+	.SUBCKT HPF_4n_BP 1 2 3 4
+
+		*High pass filter stage 1
+		*			 Input
+		* 	         | output
+		*  	         | | POSITIVE POWER SUPPLY
+		*  	         | | | NEGATIVE POWER SUPPLY
+		*  	         | | | |
+		*            | | | |
+		.SUBCKT HPF1 1 2 3 4
+			c1 		1 		5 	0.1u
+			c2 		5 		2 	0.1u
+			c3 		5 		6 	0.1u
+			r1 		6 		2 	10000
+			r2 		5 		0 	4700
+			Xopamp 	0 		6 	3 		4 2 TL081
+		.ENDS
+
+		*High pass filter stage 2
+		*			 Input
+		* 	         | output
+		*  	         | | POSITIVE POWER SUPPLY
+		*  	         | | | NEGATIVE POWER SUPPLY
+		*  	         | | | |
+		*            | | | |
+		.SUBCKT HPF2 1 2 3 4
+			c1 		1 		5 	0.11u
+			c2 		5 		2 	0.1u
+			c3 		5 		6 	0.1u
+			r1 		6 		2 	15000
+			r2 		5 		0	2200
+			Xopamp 	0		6	3 		4 2 TL081
+		.ENDS
+
+		* Cascade the 2 filters
+		Xfilter_stage_1 1 5 3 4 HPF1
+		Xfilter_stage_2 5 2 3 4 HPF2
+	.ENDS
+
+	* Create final band pass filter with LPF and HPF
+	XLPF_4n_BP 1 5 3 4 LPF_4n_BP
+	XHPF_4n_BP 5 2 3 4 HPF_4n_BP
+
+.ENDS
+
+**********************************************Common Emitter Amplifier
+*				   Input
+* 	        	   | output
+*  	        	   |   |   POSITIVE POWER SUPPLY
+*  	       		   |   |   |   NEGATIVE POWER SUPPLY
+*  	        	   |   |   |   |
+*           	   |   |   |   |
+.SUBCKT gain_stage in out vcc vee
+	QBJT 	5 3 6 2N3904 
+
+	RRc 	vcc 	5 		9100 
+	RRe1 	6 		8 		300 
+	RRe2 	8 		vee 	300 
+	RR1 	vcc 	3 		130000 
+	RR2 	3 		vee 	6200 
+
+	CCin 	in 		3 		1.50u 
+	CCc 	5 		out 	150u		; Calculations suggest 0.07u, in reality this value will distort low frequency signals
+	CCe 	8 		0 		330.00u 
+.ENDS
+
+
+.SUBCKT buf_source in d1 vee
+	Qtip42c vee 	in 		mid 	TIP42C
+	QTip36c vee 	mid 	d1 		TIP42C
+.ENDS
+
+.SUBCKT buf_drain in d2 vcc
+	Qtip41c vcc 	in 		mid		TIP41C
+	QTip35c vcc 	mid 	d2		TIP41C
+.ENDS
+
+.SUBCKT current_source d1 vcc
+	Qtip42c d1 base emit 			TIP42C
+	Rs1 	vcc 	base 	1200
+	Rs2 	base 	0 		20000
+	Rs3		vcc 	emit 	160
+.ENDS
+
+.SUBCKT current_drain d2 vee
+	Qtip41c d2 base emit			TIP41C
+	Rd1 	vee 	base 	910
+	Rd2 	base 	0 		16000
+	Rd3		vee 	emit 	220
+.ENDS
+
+.SUBCKT darling_source d1 rss vcc
+	Qtip41c vcc 	d1 		mid		TIP41C
+	QTip35c vcc 	mid 	rss		TIP35C
+.ENDS
+
+.SUBCKT darling_drain d2 rsd vee
+	Qtip42c vee 	d2 		mid		TIP42C
+	QTip36c vee 	mid 	rsd		TIP36C
+.ENDS
+
+.SUBCKT power_amp in out vcc vee
+	Xbuf_source 	in 		d1 		vee 	buf_source
+	Xbuf_drain 		in 		d2 		vcc 	buf_drain
+	Xcurrent_source d1 				vcc		current_source
+	Xcurrent_drain  d2 				vee		current_drain
+	Xdarling_source d1 		rss 	vcc		darling_source
+	Xdarling_drain  d2 		rsd 	vee		darling_drain
+	QsenseS 		d1 		rss 	cc2in 	2N3904			;Change this
+	QsenesD 		d2 		rsd 	cc2in	2N3906
+	Rsense_s		rss 	cc2in 	0.1
+	Rsense_d		rsd 	cc2in   0.1
+	Cc2 			cc2in 	out 	4700u
+	Rbalance		in 		0 		1000k
+.ENDS
+
+.SUBCKT power_amp_n in out vcc vee
+	Xbuf_source 	in 		d1 		vee 	buf_source
+	Xbuf_drain 		in 		d2 		vcc 	buf_drain
+	Xcurrent_source d1 				vcc		current_source
+	Xcurrent_drain  d2 				vee		current_drain
+	Xdarling_source d1 		rss 	vcc		darling_source
+	Xdarling_drain  d2 		rsd 	vee		darling_drain
+	QsenseS 		d1 		rss 	out 	2N3904
+	QsenesD 		d2 		rsd 	out	    2N3906
+	Rsense_s		rss 	out 	0.1
+	Rsense_d		rsd 	out     0.1
+	Rbalance		in 		0 		1000k
+.ENDS
