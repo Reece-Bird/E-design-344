@@ -1,0 +1,71 @@
+clc, clearvars, close all
+
+s = tf('s');
+
+n              = 2;
+fc             = 110;
+f_graph_max    = fc*4;
+
+
+%Butterworth Filter
+% [zb,pb,kb] = butter(n,2*pi*fc,"s");
+% [bb,ab] = zp2tf(zb,pb,kb);
+% [hb,wb] = freqs(bb,ab,4096);
+% plot(wb /(2*pi), mag2db(abs(hb)))
+hold on
+
+%Chebyshev Filter
+% [z1,p1,k1] = cheby1(n,3,2*pi*fc,"s");
+% [b1,a1] = zp2tf(z1,p1,k1);
+% [h1,w1] = freqs(b1,a1,4096);
+% plot(w1 /(2*pi), mag2db(abs(h1)))
+hold on
+
+%Inverse Chebyshev Filter
+% [z2,p2,k2] = cheby2(n,30,2*pi*fc,"s");
+% [b2,a2] = zp2tf(z2,p2,k2);
+% [h2,w2] = freqs(b2,a2,4096);
+% plot(w2 /(2*pi), mag2db(abs(h2)))
+hold on
+
+%Elipitcal Filter
+% [ze,pe,ke] = ellip(n,3,30,2*pi*fc,"s");
+% [be,ae] = zp2tf(ze,pe,ke);
+% [he,we] = freqs(be,ae,4096);
+% plot(we /(2*pi), mag2db(abs(he)))
+hold on
+
+%Bessel Filter
+[zf,pf,kf] = besself(n,2*pi*fc);
+[bf,af] = zp2tf(zf,pf,kf);
+[hf,wf] = freqs(bf,af,4096);
+plot(wf /(2*pi), mag2db(abs(hf)))
+hold on
+
+function plot_bessel_filter(n, fc)
+    % This function designs and plots a Bessel filter.
+    % Input:
+    %   n  - Filter order
+    %   fc - Cutoff frequency in Hz
+
+    % Create the Bessel filter
+    [zf, pf, kf] = besself(n, 2*pi*fc);
+    [bf, af] = zp2tf(zf, pf, kf);
+    [hf, wf] = freqs(bf, af, 4096);
+    
+    % Plot the Bessel filter response
+    plot(wf / (2*pi), mag2db(abs(hf)), 'DisplayName', sprintf('Order %d Bessel filter', n));
+    hold on;
+end
+
+for i = 1:n
+    % Call the function to plot the Bessel filter for each order
+    plot_bessel_filter(i, fc);
+end 
+
+axis([0 f_graph_max -45 5])
+grid
+xlabel("Frequency (Hz)")
+ylabel("Attenuation (dB)")
+legend
+%legend(["butter" "cheby1" "cheby2" "ellip" "besself"])

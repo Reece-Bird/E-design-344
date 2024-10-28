@@ -1,0 +1,345 @@
+Amplifier Circuit  
+*Inspiration taken from slides 410 and 411 of Prof Coenrad Fourie's Electronics 315 Notes 
+.include models_custom.cir
+.temp=90
+
+Vin 			vin 		0 			AC sin(0 26 1k)
+Vin2 			in2			0			AC sin(0 -26 1k)
+Cin 			vin 		vin1 		70n
+Vcc 			vcc 		0 			30
+Vee 			vee 		0  			-30
+
+R33 			vcc 		meas1 		1200
+vmeas1 			meas1 		q7b 		DC 		0
+R34 			q7b 		0 			20000
+R35 			vcc 		meas2 		160
+Vmeas2 			meas2 		q7e 		DC 		0 
+Q7_source 		d1 			q7b 		q7e 			TIP42C
+Vmeas3 			vcc 		q1c 		DC 		0 
+Vmeas4 			vcc 		q2c 		DC 		0
+Q1_source 		q1c 		d1 			mid1			TIP41C
+Q2_source   	q2c 		mid1 		sens1			TIP35C
+Q9_bufs			meas6 		mid2 		d1 				TIP42C
+Q10_bufs 		meas7 		vin1 		mid2 			TIP42C
+Vmeas6 			meas6 		vee 		DC 		0 
+Vmeas7 			meas7 		vee 		DC 		0
+Q11_bufd 		meas8 		vin1 		mid3 			TIP41C
+Q12_bufd 		meas9 		mid3 		d2 				TIP41C
+Vmeas8 			vcc 		meas8 		DC 		0	 
+Vmeas9 			vcc 		meas9 		DC 		0 
+Vmeas5 			dd1 		meas5 		DC 		0 
+Vmeas10 		meas10 		dd2 		DC 		0 
+Rtest1			d1			dd1			150
+Rtest2 			d2			dd2			150
+Q5_sense1 		meas5 		sens1 		cent 			TIP41C
+Q6_sense2 		meas10 		sens2 		cent 			TIP42C
+Rsense1 		sens1 		cent 		0.09
+Rsense2 		sens2 		cent 		0.09
+Cout 			cent 		meas15 		4700u
+Vmeas15 		meas15 		out 		DC
+Q3_drain 		meas14 		mid4 		sens2 			TIP36C
+Q4_drain 		meas13 		d2 			mid4 			TIP42C
+Vmeas13 		meas13 		vee 		DC 		0 
+Vmeas14 		meas14 		vee 		DC 		0
+Q8_draind 		d2 			q8b 		q8e 			TIP41C
+R36 			meas11 		vee 		910
+Vmeas11 		q8b 		meas11 		DC 		0 
+R37 			q8b 		0 			16000
+R38 			meas12 		vee 		220 
+Vmeas12 		q8e 		meas12 		DC 		0 
+R39 			vin 		0 			1000k
+Cd1				q2c			0 			1000u
+Cd2				meas14		0			1000u
+Cd3				cent		0			150n
+RL 				out 		outn 		8
+
+
+Xpower_amp_n 	in2 		outn		vcc   	vee				power_amp_n
+.control
+
+	TRAN 10u 60m
+	
+	*Declare currents
+	let I_source = i(vmeas2)
+	let I_drain  = i(vmeas12)
+	let I_dar_s1 = i(vmeas3)
+	let I_dar_s2 = i(vmeas4)
+	let I_dar_d1 = i(vmeas13)
+	let I_dar_d2 = i(vmeas14)
+	let I_bufd1  = i(vmeas8)
+	let I_bufd2  = i(vmeas9)
+	let I_bufs1  = i(vmeas7)
+	let I_bufs2  = i(vmeas6)
+	let I_sense1 = i(vmeas5)
+	let I_sense2 = i(vmeas10)
+	let I_out 	 = i(vmeas15)
+	let I_in	 = i(vin)
+	let I_r33 	 = i(vmeas1)
+	let I_r34    = v(q7b) 					/ 20000
+	let I_r35    = (v(vcc) - v(q7e) ) 		/ 160
+	let I_r36 	 = i(vmeas11)
+	let I_r37    = -v(q8b) 					/ 16000
+	let I_r38    = (v(meas12) - v(vee) ) 	/ 220
+	let I_rs1    = (v(sens1) - v(cent))  	/ 0.09 
+	let I_rs2    = (v(cent) - v(sens2)) 	/ 0.09  
+	
+	*Calculate continuous power  
+	let P_source = I_source * (v(q7e) - v(d1))    ;Will be slighly higher than actual
+	let P_drain  = I_drain  * (v(d2) - v(q8e))	  ;Wil be slightly higher than actaul
+	let P_dar_s1 = I_dar_s1 * (v(q1c) - v(mid1))
+	let P_dar_s2 = I_dar_s2 * (v(q2c) - v(sens1))
+	let P_dar_d1 = I_dar_d1 * (v(mid4) - v(meas13))
+	let P_dar_d2 = I_dar_d2 * (v(sens2) - v(meas14))
+	let P_bufd1  = I_bufd1  * (v(meas8) - v(mid3))
+	let P_bufd2  = I_bufd2  * (v(meas9) - v(d2))
+	let P_bufs1  = I_bufs1  * (v(mid2) - v(meas7))
+	let P_bufs2  = I_bufs2	* (v(d1) - v(meas6))
+	let P_sense1 = I_sense1 * (v(meas5) - v(cent))
+	let P_sense2 = I_sense2	* (v(cent) - v(meas10))
+	let P_out 	 = I_out	* (v(out)- v(outn))
+	let P_in	 = I_in		* v(vin)
+	let P_r33 	 = I_r33    * (v(vcc) - v(q7b))
+	let P_r34    = I_r34    * v(q7b)
+	let P_r35    = I_source * (v(vcc) - v(q7e)) 
+	let P_r36 	 = I_r36	* (v(meas11) - v(vee))
+	let P_r37    = I_r37 	* -v(q8b)
+	let P_r38	 = I_drain  * (v(meas12) - v(vee)) 
+	let P_rs1    = I_rs1 	* (v(sens1) - v(cent))
+	let P_rs2    = I_rs2	* (v(cent) - v(sens2))
+	
+	*Find Q point currents when input are 0
+	meas tran I_avg_source avg I_source FROM=20m TO=50m		;Choice of FROM is arbitary as 
+	meas tran I_avg_drain avg I_drain FROM=20m TO=50m		;long as it avoids transients
+	meas tran I_avg_r33 avg I_r33 FROM=20m TO=50m
+	meas tran I_avg_r36 avg I_r36 FROM=20m TO=50m
+	meas tran I_avg_dar_s1 avg I_dar_s1 FROM=20m TO=50m
+	meas tran I_avg_dar_s2 avg I_dar_s2 FROM=20m TO=50m
+	meas tran I_avg_dar_d1 avg I_dar_d1 FROM=20m TO=50m
+	meas tran I_avg_dar_d2 avg I_dar_d2 FROM=20m TO=50m
+	meas tran I_avg_bufd1 avg I_bufd1 FROM=20m TO=50m
+	meas tran I_avg_bufd2 avg I_bufd2 FROM=20m TO=50m
+	meas tran I_avg_bufs1 avg I_bufs1 FROM=20m TO=50m
+	meas tran I_avg_bufs2 avg I_bufs2 FROM=20m TO=50m
+	meas tran I_avg_sense1 avg I_sense1 FROM=20m TO=50m
+	meas tran I_avg_sense2 avg I_sense2 FROM=20m TO=50m
+	meas tran I_avg_out avg I_out FROM=20m TO=50m
+	meas tran I_avg_in avg I_in FROM=20m TO=50m
+	meas tran I_avg_r33 avg I_r33 FROM=20m TO=50m
+	meas tran I_avg_r34 avg I_r34 FROM=20m TO=50m
+	meas tran I_avg_r35 avg I_r35 FROM=20m TO=50m
+	meas tran I_avg_r36 avg I_r36 FROM=20m TO=50m
+	meas tran I_avg_r37 avg I_r37 FROM=20m TO=50m
+	meas tran I_avg_r38 avg I_r38 FROM=20m TO=50m
+	meas tran I_avg_rs1 avg I_rs1 FROM=20m TO=50m
+	meas tran I_avg_rs2 avg I_rs2 FROM=20m TO=50m
+
+	*Find absolute maximum currents
+	meas tran I_max_source max I_source FROM=20m TO=50m
+	meas tran I_max_drain max I_drain FROM=20m TO=50m
+	meas tran I_max_r33 max I_r33 FROM=20m TO=50m
+	meas tran I_max_r36 max I_r36 FROM=20m TO=50m
+	meas tran I_max_dar_s1 max I_dar_s1 FROM=20m TO=50m
+	meas tran I_max_dar_s2 max I_dar_s2 FROM=20m TO=50m
+	meas tran I_max_dar_d1 max I_dar_d1 FROM=20m TO=50m
+	meas tran I_max_dar_d2 max I_dar_d2 FROM=20m TO=50m
+	meas tran I_max_bufd1 max I_bufd1 FROM=20m TO=50m
+	meas tran I_max_bufd2 max I_bufd2 FROM=20m TO=50m
+	meas tran I_max_bufs1 max I_bufs1 FROM=20m TO=50m
+	meas tran I_max_bufs2 max I_bufs2 FROM=20m TO=50m
+	meas tran I_max_sense1 max I_sense1 FROM=20m TO=50m
+	meas tran I_max_sense2 max I_sense2 FROM=20m TO=50m
+	meas tran I_max_out max I_out FROM=20m TO=50m
+	meas tran I_max_in max I_in FROM=20m TO=50m
+	meas tran I_max_r33 max I_r33 FROM=20m TO=50m
+	meas tran I_max_r34 max I_r34 FROM=20m TO=50m
+	meas tran I_max_r35 max I_r35 FROM=20m TO=50m
+	meas tran I_max_r36 max I_r36 FROM=20m TO=50m
+	meas tran I_max_r37 max I_r37 FROM=20m TO=50m
+	meas tran I_max_r38 max I_r38 FROM=20m TO=50m
+	meas tran I_max_rs1 max I_rs1 FROM=20m TO=50m
+	meas tran I_max_rs2 max I_rs2 FROM=20m TO=50m
+	
+	*Find Q point powers when inputs are 0
+	meas tran P_avg_source avg P_source FROM=20m TO=50m
+	meas tran P_avg_drain avg P_drain FROM=20m TO=50m
+	meas tran P_avg_r33 avg P_r33 FROM=20m TO=50m
+	meas tran P_avg_r36 avg P_r36 FROM=20m TO=50m
+	meas tran P_avg_dar_s1 avg P_dar_s1 FROM=20m TO=50m
+	meas tran P_avg_dar_s2 avg P_dar_s2 FROM=20m TO=50m
+	meas tran P_avg_dar_d1 avg P_dar_d1 FROM=20m TO=50m
+	meas tran P_avg_dar_d2 avg P_dar_d2 FROM=20m TO=50m
+	meas tran P_avg_bufd1 avg P_bufd1 FROM=20m TO=50m
+	meas tran P_avg_bufd2 avg P_bufd2 FROM=20m TO=50m
+	meas tran P_avg_bufs1 avg P_bufs1 FROM=20m TO=50m
+	meas tran P_avg_bufs2 avg P_bufs2 FROM=20m TO=50m
+	meas tran P_avg_sense1 avg P_sense1 FROM=20m TO=50m
+	meas tran P_avg_sense2 avg P_sense2 FROM=20m TO=50m
+	meas tran P_avg_out avg P_out FROM=20m TO=50m
+	meas tran P_avg_in avg P_in FROM=20m TO=50m
+	meas tran P_avg_r33 avg P_r33 FROM=20m TO=50m
+	meas tran P_avg_r34 avg P_r34 FROM=20m TO=50m
+	meas tran P_avg_r35 avg P_r35 FROM=20m TO=50m
+	meas tran P_avg_r36 avg P_r36 FROM=20m TO=50m
+	meas tran P_avg_r37 avg P_r37 FROM=20m TO=50m
+	meas tran P_avg_r38 avg P_r38 FROM=20m TO=50m
+	meas tran P_avg_rs1 avg P_rs1 FROM=20m TO=50m
+	meas tran P_avg_rs2 avg P_rs2 FROM=20m TO=50m
+
+	*Find RMS powers
+	meas tran P_max_source RMS P_source FROM=20m TO=50m
+	meas tran P_max_drain RMS P_drain FROM=20m TO=50m
+	meas tran P_max_r33 RMS P_r33 FROM=20m TO=50m
+	meas tran P_max_r36 RMS P_r36 FROM=20m TO=50m
+	meas tran P_max_dar_s1 RMS P_dar_s1 FROM=20m TO=50m
+	meas tran P_max_dar_s2 RMS P_dar_s2 FROM=20m TO=50m
+	meas tran P_max_dar_d1 RMS P_dar_d1 FROM=20m TO=50m
+	meas tran P_max_dar_d2 RMS P_dar_d2 FROM=20m TO=50m
+	meas tran P_max_bufd1 RMS P_bufd1 FROM=20m TO=50m
+	meas tran P_max_bufd2 RMS P_bufd2 FROM=20m TO=50m
+	meas tran P_max_bufs1 RMS P_bufs1 FROM=20m TO=50m
+	meas tran P_max_bufs2 RMS P_bufs2 FROM=20m TO=50m
+	meas tran P_max_sense1 RMS P_sense1 FROM=20m TO=50m
+	meas tran P_max_sense2 RMS P_sense2 FROM=20m TO=50m
+	meas tran P_max_out RMS P_out FROM=20m TO=50m
+	meas tran P_max_in RMS P_in FROM=20m TO=50m
+	meas tran P_max_r33 RMS P_r33 FROM=20m TO=50m
+	meas tran P_max_r34 RMS P_r34 FROM=20m TO=50m
+	meas tran P_max_r35 RMS P_r35 FROM=20m TO=50m
+	meas tran P_max_r36 RMS P_r36 FROM=20m TO=50m
+	meas tran P_max_r37 RMS P_r37 FROM=20m TO=50m
+	meas tran P_max_r38 RMS P_r38 FROM=20m TO=50m
+	meas tran P_max_rs1 RMS P_rs1 FROM=20m TO=50m
+	meas tran P_max_rs2 RMS P_rs2 FROM=20m TO=50m
+
+	echo
+	echo
+	
+	echo Current Q-pt (Only vaild when inputs are 0)              
+	echo --------------------------------------------
+	echo Current Source----------:  $&I_avg_source A
+	echo Current Drain-----------:  $&I_avg_drain A
+	echo Darlington Source 1-----:  $&I_avg_dar_s1 A
+	echo Darlington Source 2-----:  $&I_avg_dar_s2 A
+	echo Darlington Drain 1------:  $&I_avg_dar_d1 A
+	echo Darlington Drain 2------:  $&I_avg_dar_d2 A
+	echo Buffer Source 1---------:  $&I_avg_bufs1 A
+	echo Buffer Source 2---------:  $&I_avg_bufs2 A
+	echo Buffer Drain 1----------:  $&I_avg_bufd1 A
+	echo Buffer Drain 2----------:  $&I_avg_bufd2 A
+	echo Sense Source 1----------:  $&I_avg_sense1 A
+	echo Sense Drain 2-----------:  $&I_avg_sense2 A
+	echo Output------------------:  $&I_avg_out A
+	echo Input-------------------:  $&I_avg_in A
+	echo R33---------------------:  $&I_avg_r33 A
+	echo R34---------------------:  $&I_avg_r34 A
+	echo R35---------------------:  $&I_avg_r35 A
+	echo R36---------------------:  $&I_avg_r36 A
+	echo R37---------------------:  $&I_avg_r37 A
+	echo R38---------------------:  $&I_avg_r38 A
+	echo Rsense1-----------------:  $&I_avg_rs1 A
+	echo Rsense2-----------------:  $&I_avg_rs2 A
+
+	echo 
+	echo 
+	
+	echo Power Q-pt (Only vaild when inputs are 0)                     
+	echo ------------------------------------------
+	echo Current Source----------: $&P_avg_source W
+	echo Curent Drain------------:  $&P_avg_drain W
+	echo Darlington Source 1-----: $&P_avg_dar_s1 W
+	echo Darlington Source 2-----: $&P_avg_dar_s2 W
+	echo Darlington Drain 1------: $&P_avg_dar_d1 W
+	echo Darlington Drain 2------: $&P_avg_dar_d2 W
+	echo Buffer Source 1---------:  $&P_avg_bufs1 W
+	echo Buffer Source 2---------:  $&P_avg_bufs2 W
+	echo Buffer Drain 1----------:  $&P_avg_bufd1 W
+	echo Buffer Drain 2----------:  $&P_avg_bufd2 W
+	echo Sense Source 1----------: $&P_avg_sense1 W
+	echo Sense Drain 2-----------: $&P_avg_sense2 W
+	echo Output------------------:    $&P_avg_out W
+	echo Input-------------------:     $&P_avg_in W
+	echo R33---------------------:    $&P_avg_r33 W
+	echo R34---------------------:    $&P_avg_r34 W
+	echo R35---------------------:    $&P_avg_r35 W
+	echo R36---------------------:    $&P_avg_r36 W
+	echo R37---------------------:    $&P_avg_r37 W
+	echo R38---------------------:    $&P_avg_r38 W
+	echo Rsense1-----------------:    $&P_avg_rs1 W    
+	echo Rsense2-----------------:    $&P_avg_rs2 W 
+	
+	echo
+	echo 
+	
+	echo Current Max             
+	echo --------------------------------------------
+	echo Current Source----------:  $&I_max_source A
+	echo Current Drain-----------:  $&I_max_drain A
+	echo Darlington Source 1-----:  $&I_max_dar_s1 A
+	echo Darlington Source 2-----:  $&I_max_dar_s2 A
+	echo Darlington Drain 1------:  $&I_max_dar_d1 A
+	echo Darlington Drain 2------:  $&I_max_dar_d2 A
+	echo Buffer Source 1---------:  $&I_max_bufs1 A
+	echo Buffer Source 2---------:  $&I_max_bufs2 A
+	echo Buffer Drain 1----------:  $&I_max_bufd1 A
+	echo Buffer Drain 2----------:  $&I_max_bufd2 A
+	echo Sense Source 1----------:  $&I_max_sense1 A
+	echo Sense Drain 2-----------:  $&I_max_sense2 A
+	echo Output------------------:  $&I_max_out A
+	echo Input-------------------:  $&I_max_in A
+	echo R33---------------------:  $&I_max_r33 A
+	echo R34---------------------:  $&I_max_r34 A
+	echo R35---------------------:  $&I_max_r35 A
+	echo R36---------------------:  $&I_max_r36 A
+	echo R37---------------------:  $&I_max_r37 A
+	echo R38---------------------:  $&I_max_r38 A
+	echo Rsense1-----------------:  $&I_max_rs1 A
+	echo Rsense2-----------------:  $&I_max_rs2 A
+
+	echo
+	echo 
+	
+	echo Max load power
+	echo ------------------------------------------
+	echo Current Source----------: $&P_max_source W
+	echo Curent Drain------------:  $&P_max_drain W
+	echo Darlington Source 1-----: $&P_max_dar_s1 W
+	echo Darlington Source 2-----: $&P_max_dar_s2 W
+	echo Darlington Drain 1------: $&P_max_dar_d1 W
+	echo Darlington Drain 2------: $&P_max_dar_d2 W
+	echo Buffer Source 1---------:  $&P_max_bufs1 W
+	echo Buffer Source 2---------:  $&P_max_bufs2 W
+	echo Buffer Drain 1----------:  $&P_max_bufd1 W
+	echo Buffer Drain 2----------:  $&P_max_bufd2 W
+	echo Sense Source 1----------: $&P_max_sense1 W
+	echo Sense Drain 2-----------: $&P_max_sense2 W
+	echo Output------------------:    $&P_max_out W
+	echo Input-------------------:     $&P_max_in W
+	echo R33---------------------:    $&P_max_r33 W
+	echo R34---------------------:    $&P_max_r34 W
+	echo R35---------------------:    $&P_max_r35 W
+	echo R36---------------------:    $&P_max_r36 W
+	echo R37---------------------:    $&P_max_r37 W
+	echo R38---------------------:    $&P_max_r38 W
+	echo Rsense1-----------------:    $&P_max_rs1 W    
+	echo Rsense2-----------------:    $&P_max_rs2 W 
+	
+	*show Q5_sense1
+	*show Q6_sense2
+	*show Q4_drain
+	*plot P_r33, P_r34, P_r35, P_r36, P_r37, P_r38 xlimit 40m 42m
+	*plot v(sens1) - v(cent), I_rs1 xlimit 40m 42m
+	*plot P_source, P_drain, P_dar_s1, P_dar_d1, P_bufd1, P_bufd2, P_bufs1, P_bufs2, P_sense1, P_sense2 xlimit 40m 42m
+	*plot out xlimit 40m 42m
+	*plot P_sense1 xlimit 40m 42m
+	plot out - v(outn) xlimit 40m 42m
+	*plot v(q2c) - V(sens1)
+	plot -i(vmeas5)
+	plot -i(vmeas10)
+	plot i(vmeas15)
+	plot P_out
+	plot v(q2c) - v(sens1)
+	plot I_dar_s2 * (v(q2c) - v(sens1))*0.5
+	plot v(cent) - v(sens1)
+
+.endc
+.end
